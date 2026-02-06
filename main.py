@@ -146,8 +146,3 @@ def log(usr: user):
 def all_users():
     response = supabase.table("user").select("*").execute()
     return{"users":response}
-
-@app.get("/getUser")
-def one_user():
-    response = supabase.table("user").select("*").eq("email", email).single().execute()
-    return{"users":response}
