@@ -15,6 +15,18 @@ app = FastAPI()
 
 agent = AiAgent()
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 supabase = create_client("https://clrvazgwmvmhbjhohszr.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNscnZhemd3bXZtaGJqaG9oc3pyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDM0ODQ3OCwiZXhwIjoyMDg1OTI0NDc4fQ.s2iBCg513W6h6GX7bL7HYkXdn33i-ZmSrVAX7GzuqyY")
 SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
@@ -24,14 +36,14 @@ class project(BaseModel):
     name: str
     address: str
     description: str 
-    type: str
-    skills_required: List[str]
+    img: str
+    skills: List[str]
 
 class user(BaseModel):
     full_name: str
     email: EmailStr
     password: str
-    field_of_interest: List[str]
+    field_of_interest: str
     education_level: str = "expert"
     motivation: str
     helpful_links: Optional[str] = None
@@ -89,7 +101,7 @@ def delete(p : project, token: str = Depends(oauth2_scheme)):
     
 @app.get("/")
 def home():
-    response = supabase.table("projects").select("id", "name").execute()
+    response = supabase.table("projects").select("img", "name", "address").execute()
     projects = response.data
     return {"projects": projects}
 
@@ -128,3 +140,14 @@ def log(usr: user):
     token = jwt.encode(tmp ,SECRET_KEY,algorithm=ALGORITHM)
 
     return {"access_token": token}
+
+
+@app.get("/getAllUsers")
+def all_users():
+    response = supabase.table("user").select("*").execute()
+    return{"users":response}
+
+@app.get("/getUser")
+def one_user():
+    response = supabase.table("user").select("*").eq("email", email).single().execute()
+    return{"users":response}
