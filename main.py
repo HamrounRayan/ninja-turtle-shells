@@ -1,13 +1,13 @@
 from fastapi import FastAPI
 from supabase import create_client
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 import jwt
 from pwdlib import PasswordHash
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Annotated
 from app.ai_agent import AiAgent
-
+from typing import Optional, Literal
 
 
 app = FastAPI()
@@ -25,14 +25,24 @@ class project(BaseModel):
     description: str 
 
 class user(BaseModel):
-    email: str
+    full_name: str
+    email: EmailStr
     password: str
-    type:str
+    field_of_interest: str
+    education_level: str = "expert"
+    motivation: str
+    helpful_links: Optional[str] = None
+    type: Literal["student", "teacher", "admin"]
 
 class userdb(BaseModel):
-    email: str
-    passhash: str
-    type: str
+    full_name: str
+    email: EmailStr
+    password: str
+    field_of_interest: str
+    education_level: str = "expert"
+    motivation: str
+    helpful_links: Optional[str] = None
+    type: Literal["student", "teacher", "admin"]
 
 def hash_password(password):
     return PasswordHash.recommended().hash(password)
