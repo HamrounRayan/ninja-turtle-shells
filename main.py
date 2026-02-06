@@ -8,6 +8,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Annotated
 from app.ai_agent import AiAgent
 from typing import Optional, Literal
+from typing import List
 
 
 app = FastAPI()
@@ -23,12 +24,14 @@ class project(BaseModel):
     name: str
     address: str
     description: str 
+    type: str
+    skills_required: List[str]
 
 class user(BaseModel):
     full_name: str
     email: EmailStr
     password: str
-    field_of_interest: str
+    field_of_interest: List[str]
     education_level: str = "expert"
     motivation: str
     helpful_links: Optional[str] = None
@@ -62,7 +65,6 @@ def current_user(token: Annotated[str, Depends(oauth2_scheme)]):
     username = tmp.get("email")
     if not username:
         return None
-    
     return supabase.table("user").select("*").eq("email", username).single().execute()
 
 
@@ -73,6 +75,15 @@ def add(p : project, token: str = Depends(oauth2_scheme)):
     if ninja["type"] == "admin" :
         supabase.table("projects").insert(p.model_dump()).execute()
         return {"message": "Project created successfully"}
+    else :
+        return None    
+    
+@app.post("/deleteproject")
+def delete(p : project, token: str = Depends(oauth2_scheme)):
+    ninja = current_user(token).data
+    if ninja["type"] == "admin" :
+        supabase.table("projects").delete().eq("name", p.name).execute()
+        return {"message": "Project deleted successfully"}
     else :
         return None    
     
