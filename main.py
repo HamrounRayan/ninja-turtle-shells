@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 from supabase import create_client
 from pydantic import BaseModel
-from jose import jwt
-from passlib.context import CryptContext
+import jwt
+from pwdlib import PasswordHash
+
 
 app = FastAPI()
 supabase = create_client("https://clrvazgwmvmhbjhohszr.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNscnZhemd3bXZtaGJqaG9oc3pyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDM0ODQ3OCwiZXhwIjoyMDg1OTI0NDc4fQ.s2iBCg513W6h6GX7bL7HYkXdn33i-ZmSrVAX7GzuqyY")
+SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+ALGORITHM = "HS256"
 
 class project(BaseModel):
     address: str
@@ -21,16 +24,11 @@ class userdb(BaseModel):
     passhash: str
     type: str
 
-SECRET_KEY = "ufbyezhfbrzhbergfeufbrbgfuerbfzebduyaebfyurebfq567545VRFRCC456YU"
-ALGORITHM = "HS256"
+def hash_password(password):
+    return PasswordHash.recommended().hash(password)
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def hash_password(password: str):
-    return pwd_context.hash(password[72])
-
-def verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(plain_password, hashed_password)
+def verify_password(plain_password, hashed_password):
+    return PasswordHash.recommended().verify(plain_password, hashed_password)
 
 def create_token(usr : user):
     tmp = {
@@ -40,9 +38,9 @@ def create_token(usr : user):
     return jwt.encode(tmp, SECRET_KEY, algorithm=ALGORITHM)
 
 
-@app.post("/project")
+@app.post("/newproject")
 def add(p : project):
-    supabase.table("water").insert(p.model_dump()).execute()
+    supabase.table("projects").insert(p.model_dump()).execute()
 
 @app.post("/signup")
 def add(usr : user):
@@ -53,23 +51,21 @@ def add(usr : user):
         )
     supabase.table("user").insert(usr_db.model_dump()).execute()
 
-@app.get("/login")
+@app.post("/login")
 def log(usr: user):
-    response = supabase.table("user").select("*").eq("email", usr.email).execute()
-    data = response.data
+    response = supabase.table("user").select("*").eq("email", usr.email).single().execute()
+    user_record = response.data
 
-    if not data:
+    if not user_record:
         return {"error": "User not found"}
-
-    user_record = data[0]
-
+    
     if not verify_password(usr.password, user_record["passhash"]):
         return {"error": "Incorrect password"}
 
-    token = jwt.encode(
-        {"email": user_record["email"], "type": user_record["type"]},
-        SECRET_KEY,
-        algorithm=ALGORITHM
-    )
+    tmp = {
+        "email": usr.email,
+        "type": usr.type
+    }
+    token = jwt.encode(tmp ,SECRET_KEY,algorithm=ALGORITHM)
 
     return {"access_token": token}
