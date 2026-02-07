@@ -9,12 +9,19 @@ from typing import Annotated
 from app.ai_agent import AiAgent
 from typing import Optional, Literal
 from typing import List
-
+import os
+from dotenv import load_dotenv
 
 app = FastAPI()
 
 agent = AiAgent()
 
+load_dotenv()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY")
+ALGORITHM = "HS256"
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -28,9 +35,7 @@ app.add_middleware(
 )
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-supabase = create_client("https://clrvazgwmvmhbjhohszr.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNscnZhemd3bXZtaGJqaG9oc3pyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDM0ODQ3OCwiZXhwIjoyMDg1OTI0NDc4fQ.s2iBCg513W6h6GX7bL7HYkXdn33i-ZmSrVAX7GzuqyY")
-SECRET_KEY = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
-ALGORITHM = "HS256"
+supabase = create_client(SUPABASE_URL,SUPABASE_KEY)
 
 class project(BaseModel):
     name: str
