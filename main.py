@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from supabase import create_client
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 import jwt
 from pwdlib import PasswordHash
+from typing import Optional, Literal
 
 
 app = FastAPI()
@@ -15,14 +16,14 @@ class project(BaseModel):
     description: str 
 
 class user(BaseModel):
-    email: str
+    full_name: str
+    email: EmailStr
     password: str
-    type:str
-
-class userdb(BaseModel):
-    email: str
-    passhash: str
-    type: str
+    field_of_interest: str
+    education_level: str = "expert"
+    motivation: str
+    helpful_links: Optional[str] = None
+    type: Literal["student", "teacher", "admin"]
 
 def hash_password(password):
     return PasswordHash.recommended().hash(password)
@@ -44,18 +45,31 @@ def add(p : project):
 
 @app.post("/signup")
 def add(usr : user):
-    usr_db = userdb(
-        email=usr.email,
-        passhash=hash_password(usr.password),
-        type=usr.type
+    usr_db = user(
+        full_name= usr.full_name,
+        email= usr.email,
+        password= hash_password(usr.password),
+        field_of_interest= usr.field_of_interest,
+        education_level = usr.education_level,
+        motivation =  usr.motivation,
+        helpful_links =  usr.helpful_links,
+        type = usr.type
         )
     supabase.table("user").insert(usr_db.model_dump()).execute()
+    tmp = {
+        "email": usr.email,
+        "type": usr.type
+    }
+    token = jwt.encode(tmp ,SECRET_KEY,algorithm=ALGORITHM)
+
+    return {"access_token": token}
+
 
 @app.post("/login")
 def log(usr: user):
     response = supabase.table("user").select("*").eq("email", usr.email).single().execute()
     user_record = response.data
-
+    
     if not user_record:
         return {"error": "User not found"}
     
@@ -69,3 +83,35 @@ def log(usr: user):
     token = jwt.encode(tmp ,SECRET_KEY,algorithm=ALGORITHM)
 
     return {"access_token": token}
+
+@app.get("/getAllUsers")
+def all_users():
+    response = supabase.table("user").select("*").execute()
+    return{"users":response}
+
+
+
+@app.get("/getUser")
+def get_user(email: EmailStr):
+    print(email)
+    response = (
+        supabase.table("user").select("*").eq("email", email).single().execute()
+    )
+    print(response)
+    if not response.data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return response.data
+
+@app.delete("/deleteUser")
+def get_user(email: EmailStr):
+    print(email)
+    response = (
+        supabase.table("user").delete().eq("email", email).execute()
+    )
+    print(response)
+    if not response.data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return None
+
