@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from supabase import create_client
 from pydantic import BaseModel, EmailStr
 import jwt
@@ -90,7 +90,28 @@ def all_users():
     return{"users":response}
 
 
+
 @app.get("/getUser")
-def one_user():
-    response = supabase.table("user").select("*").eq("email", email).single().execute()
-    return{"users":response}
+def get_user(email: EmailStr):
+    print(email)
+    response = (
+        supabase.table("user").select("*").eq("email", email).single().execute()
+    )
+    print(response)
+    if not response.data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return response.data
+
+@app.delete("/deleteUser")
+def get_user(email: EmailStr):
+    print(email)
+    response = (
+        supabase.table("user").delete().eq("email", email).execute()
+    )
+    print(response)
+    if not response.data:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return None
+
